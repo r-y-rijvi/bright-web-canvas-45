@@ -33,12 +33,13 @@ const isStr = (v: unknown) => typeof v === "string" && v.trim().length > 0;
 export function validate(raw: unknown): { ok: true; data: Building } | { ok: false; error: string } {
   const fail = (error: string) => ({ ok: false as const, error });
   if (!raw || typeof raw !== "object") return fail("Root must be an object");
-  const b = raw as Record<string, unknown>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const b = raw as any;
   if (!isStr(b.building)) return fail("building must be a non-empty string");
   if (!Array.isArray(b.nodes) || b.nodes.length < 2 || b.nodes.length > 60) return fail("nodes must have 2–60 items");
   if (!Array.isArray(b.edges) || b.edges.length < 1 || b.edges.length > 150) return fail("edges must have 1–150 items");
   const nodes = new Map<string, BNode>();
-  for (const n of b.nodes as Record<string, unknown>[]) {
+  for (const n of b.nodes as any[]) {
     if (!n || !isStr(n.id) || !isStr(n.label)) return fail("Each node needs id and label");
     if (!["room", "junction", "exit"].includes(n.type as string)) return fail(`Node ${n.id}: invalid type`);
     if (typeof n.x !== "number" || typeof n.y !== "number" || !isFinite(n.x) || !isFinite(n.y)) return fail(`Node ${n.id}: x/y must be numbers`);
@@ -48,7 +49,7 @@ export function validate(raw: unknown): { ok: true; data: Building } | { ok: fal
   const types = [...nodes.values()].map((n) => n.type);
   if (!types.includes("exit") || !types.some((t) => t !== "exit")) return fail("Need at least one exit and one room/junction");
   const eids = new Set<string>(); const pairs = new Set<string>();
-  for (const e of b.edges as Record<string, unknown>[]) {
+  for (const e of b.edges as any[]) {
     if (!e || !isStr(e.id)) return fail("Each edge needs an id");
     if (eids.has(e.id as string)) return fail(`Duplicate edge id ${e.id}`);
     if (!nodes.has(e.from as string) || !nodes.has(e.to as string)) return fail(`Edge ${e.id}: unknown node`);
@@ -58,7 +59,7 @@ export function validate(raw: unknown): { ok: true; data: Building } | { ok: fal
     if (pairs.has(key)) return fail(`Edge ${e.id}: repeated node pair`);
     pairs.add(key); eids.add(e.id as string);
   }
-  const s = b.initial_state as Record<string, unknown>;
+  const s = b.initial_state as any;
   if (!s || typeof s !== "object") return fail("initial_state missing");
   for (const k of ["blocked_nodes", "blocked_edges", "closed_exits"]) {
     if (!Array.isArray(s[k])) return fail(`initial_state.${k} must be an array`);
@@ -75,7 +76,7 @@ export function validate(raw: unknown): { ok: true; data: Building } | { ok: fal
 
 const cmpSeq = (a: string[], b: string[]) => {
   for (let i = 0; i < Math.min(a.length, b.length); i++) {
-    if (a[i] !== b[i]) return a[i] < b[i] ? -1 : 1;
+    if (a[i] !== b[i]) return a[i]! < b[i]! ? -1 : 1;
   }
   return a.length - b.length;
 };
